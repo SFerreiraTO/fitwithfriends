@@ -37,7 +37,7 @@ router.post('/request-link', async (req, res) => {
 
   res.json({
     message: 'Link enviado para ' + email,
-    ...(devUrl ? { devUrl } : {}),   // só em dev (sem SMTP)
+    ...(devUrl && process.env.NODE_ENV !== 'production' ? { devUrl } : {}),
   })
 })
 
