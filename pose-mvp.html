@@ -489,7 +489,8 @@ const EXERCISES = {
 // ═══════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════
-const API             = 'http://localhost:4000';
+// Em produção (mesmo origin), usa URLs relativas. Em dev local (file://) usa localhost.
+const API = window.location.protocol === 'file:' ? 'http://localhost:4000' : '';
 let authToken         = localStorage.getItem('fc_jwt');
 let activeChallengeId = null;
 let workoutStart      = null;
