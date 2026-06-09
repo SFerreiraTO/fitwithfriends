@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitness Challenge MVP</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0f0f0f;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    header {
+      width: 100%;
+      padding: 14px 16px;
+      background: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    header h1 { font-size: 17px; font-weight: 700; }
+    .back-btn {
+      background: none; border: none; color: #888;
+      font-size: 14px; cursor: pointer; padding: 4px 8px;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: #fff; }
+
+    /* ── PICKER ── */
+    #screenPicker { width: 100%; max-width: 480px; }
+    .picker-intro { padding: 16px; color: #888; font-size: 13px; }
+    .picker-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 0 12px 20px;
+    }
+    .exercise-card {
+      background: #1a1a1a;
+      border-radius: 14px;
+      padding: 18px 12px;
+      cursor: pointer;
+      text-align: center;
+      border: 2px solid transparent;
+      transition: transform 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .exercise-card:hover { background: #232323; transform: scale(1.02); }
+    .exercise-card:active { transform: scale(0.97); }
+    .exercise-card .icon { font-size: 36px; margin-bottom: 8px; }
+    .exercise-card .name { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+    .exercise-card .target { font-size: 12px; color: #888; margin-bottom: 8px; }
+    .view-tag {
+      display: inline-block;
+      background: #2a2a2a;
+      border-radius: 99px;
+      padding: 3px 10px;
+      font-size: 10px;
+      color: #aaa;
+    }
+
+    /* ── CAMERA SCREEN ── */
+    #screenCamera {
+      width: 100%; max-width: 480px;
+      display: none; flex-direction: column; align-items: center;
+    }
+
+    .challenge-bar {
+      width: 100%;
+      padding: 10px 16px;
+      background: #1a1a1a;
+    }
+    .challenge-bar h2 { font-size: 12px; color: #888; }
+    .challenge-bar p { font-size: 17px; font-weight: 700; }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      background: #111;
+    }
+    video { width: 100%; display: block; transform: scaleX(-1); }
+    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+
+    .overlay-status {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+      padding: 5px 14px; border-radius: 20px;
+      font-size: 12px; white-space: nowrap;
+    }
+
+    .progress-bar-wrap { width: 100%; height: 6px; background: #2a2a2a; }
+    .progress-bar-fill { height: 100%; background: #4ade80; transition: width 0.3s; width: 0%; }
+
+    .stats {
+      width: 100%;
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px; padding: 10px 12px;
+    }
+    .stat-card {
+      background: #1a1a1a; border-radius: 10px;
+      padding: 12px 8px; text-align: center;
+    }
+    .stat-card .value { font-size: 30px; font-weight: 800; line-height: 1; }
+    .stat-card .label { font-size: 11px; color: #888; margin-top: 4px; }
+    .v-green  { color: #4ade80; }
+    .v-yellow { color: #facc15; }
+    .v-blue   { color: #60a5fa; }
+    .v-orange { color: #f97316; }
+
+    .feedback-box {
+      width: 100%; padding: 12px 16px;
+      background: #1a1a1a; font-size: 14px;
+      min-height: 46px; border-left: 4px solid #4ade80;
+      transition: border-color 0.2s;
+    }
+    .feedback-box.warn  { border-color: #facc15; }
+    .feedback-box.error { border-color: #f87171; }
+
+    .tip-box {
+      width: 100%; padding: 8px 16px;
+      background: #111; font-size: 12px; color: #555;
+    }
+    .tip-box span { color: #777; }
+
+    .btn-row { width: 100%; display: flex; gap: 8px; padding: 10px 12px; }
+    button {
+      flex: 1; padding: 13px; border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    button:active { opacity: 0.7; }
+    #btnStart    { background: #4ade80; color: #0f0f0f; }
+    #btnReset    { background: #2a2a2a; color: #fff; }
+    #btnComplete { background: #60a5fa; color: #0f0f0f; display: none; }
+
+    /* ── SUCCESS ── */
+    .success-screen {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.93);
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 14px; z-index: 100;
+    }
+    .success-screen.show { display: flex; }
+    .success-screen .emoji { font-size: 70px; }
+    .success-screen h2 { font-size: 26px; font-weight: 800; }
+    .success-screen p { color: #aaa; font-size: 14px; text-align: center; padding: 0 28px; }
+    #btnDismiss {
+      background: #4ade80; color: #0f0f0f;
+      padding: 13px 40px; border-radius: 10px;
+      font-size: 15px; font-weight: 700; border: none; cursor: pointer;
+    }
+
+    .dot-loader::after { content: ''; animation: dots 1.5s infinite; }
+    @keyframes dots { 0%{content:''} 33%{content:'.'} 66%{content:'..'} 100%{content:'...'} }
+
+    /* ── AUTH SCREEN ── */
+    #screenAuth {
+      width: 100%; max-width: 480px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .auth-body { width: 100%; padding: 40px 24px; display: flex; flex-direction: column; gap: 16px; }
+    .auth-body h2 { font-size: 22px; font-weight: 800; }
+    .auth-body p  { color: #888; font-size: 14px; line-height: 1.5; }
+    .auth-input {
+      width: 100%; padding: 13px 14px; background: #1a1a1a;
+      border: 1px solid #2a2a2a; border-radius: 10px;
+      color: #fff; font-size: 15px; outline: none; font-family: inherit;
+    }
+    .auth-input:focus { border-color: #4ade80; }
+    .auth-btn {
+      flex: none; width: 100%; padding: 13px; background: #4ade80; color: #0f0f0f;
+      border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    .auth-btn:disabled { opacity: 0.5; cursor: default; }
+    .auth-msg { font-size: 13px; color: #888; text-align: center; min-height: 18px; }
+    .auth-msg.ok  { color: #4ade80; }
+    .auth-msg.err { color: #f87171; }
+    #tokenSection { display: none; flex-direction: column; gap: 10px; }
+    .magic-link-box {
+      background: #0f1f0f; border: 1px solid #4ade8055; border-radius: 10px;
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .magic-link-box p { color: #888; font-size: 12px; margin: 0; }
+    .magic-link-btn {
+      display: block; background: #4ade80; color: #0f0f0f; text-decoration: none;
+      padding: 12px; border-radius: 8px; font-weight: 700; font-size: 15px; text-align: center;
+    }
+
+    /* ── CHALLENGE BANNER ── */
+    .challenge-banner {
+      width: 100%; padding: 10px 16px; background: #0f1f0f;
+      border-left: 3px solid #4ade80; display: none; font-size: 13px; color: #aaa;
+    }
+    .challenge-banner strong { color: #4ade80; }
+
+    /* ── GROUPS SCREEN ── */
+    #screenGroups {
+      width: 100%; max-width: 480px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .groups-actions { width: 100%; display: flex; gap: 8px; padding: 12px; }
+    .inline-form { width: 100%; padding: 0 12px 12px; display: none; flex-direction: column; gap: 8px; }
+    .inline-form.open { display: flex; }
+    .group-card {
+      width: calc(100% - 24px); margin: 0 12px 10px;
+      background: #1a1a1a; border-radius: 14px; overflow: hidden;
+    }
+    .group-card-header {
+      padding: 14px 16px 12px; display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .group-card-name { font-size: 16px; font-weight: 700; }
+    .group-card-meta { font-size: 12px; color: #555; margin-top: 3px; }
+    .invite-code {
+      background: #2a2a2a; border-radius: 6px; padding: 3px 8px;
+      font-size: 11px; font-family: monospace; color: #888; letter-spacing: 1px;
+    }
+    .challenge-row {
+      padding: 10px 16px; background: #0f1f0f; border-top: 1px solid #1a2a1a;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .challenge-row-info { font-size: 13px; color: #aaa; }
+    .challenge-row-info strong { color: #4ade80; }
+    .btn-play {
+      background: #4ade80; color: #0f0f0f; border: none; border-radius: 8px;
+      padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer; flex: none;
+    }
+    .no-challenge { padding: 10px 16px; border-top: 1px solid #1e1e1e; font-size: 13px; color: #444; }
+    .owner-challenge-row {
+      padding: 10px 16px; border-top: 1px solid #1e1e1e; display: flex; gap: 8px; align-items: center;
+    }
+    .challenge-select {
+      flex: 2; padding: 8px 10px; background: #2a2a2a; border: none; border-radius: 8px;
+      color: #fff; font-size: 13px; outline: none;
+    }
+    .challenge-target-input {
+      flex: 1; min-width: 0; padding: 8px 10px; background: #2a2a2a; border: none; border-radius: 8px;
+      color: #fff; font-size: 13px; outline: none; text-align: center;
+    }
+    .btn-create-ch {
+      background: #60a5fa; color: #0f0f0f; border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; flex: none;
+    }
+    .groups-empty { padding: 40px 24px; text-align: center; color: #555; font-size: 14px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════ -->
+<div id="screenAuth" style="display:none">
+  <header>
+    <h1>💪 Fitness Challenge</h1>
+    <span style="font-size:12px;color:#888">Login</span>
+  </header>
+  <div class="auth-body">
+    <h2>Entrar</h2>
+    <p>Introduz o teu email para receberes um link de acesso.<br>Em dev, o link aparece no terminal do servidor.</p>
+    <input id="authEmail" class="auth-input" type="email" placeholder="o teu email" />
+    <button id="btnRequestLink" class="auth-btn">Enviar link mágico</button>
+    <div id="authMsg" class="auth-msg"></div>
+    <div id="tokenSection">
+      <p style="font-size:12px;color:#555;margin-top:4px">Cola o URL do terminal:</p>
+      <input id="tokenInput" class="auth-input" placeholder="http://localhost:4000/auth/verify?token=…" />
+      <button id="btnVerifyToken" class="auth-btn" style="background:#60a5fa">Verificar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     GROUPS SCREEN
+══════════════════════════════════ -->
+<div id="screenGroups" style="display:none">
+  <header>
+    <h1>Os teus grupos</h1>
+    <button class="back-btn" onclick="logout()">Sair</button>
+  </header>
+  <div class="groups-actions">
+    <button onclick="toggleForm('formCreate')" style="flex:1;background:#4ade80;color:#0f0f0f;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">+ Criar grupo</button>
+    <button onclick="toggleForm('formJoin')"   style="flex:1;background:#2a2a2a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">🔑 Entrar com código</button>
+  </div>
+  <div id="formCreate" class="inline-form">
+    <input id="inputGroupName"  class="auth-input" placeholder="Nome do grupo" />
+    <button class="auth-btn" onclick="createGroup()">Criar</button>
+    <div id="msgCreate" class="auth-msg"></div>
+  </div>
+  <div id="formJoin" class="inline-form">
+    <input id="inputInviteCode" class="auth-input" placeholder="Código de convite (ex: TOU2ZOGA)" style="text-transform:uppercase" />
+    <button class="auth-btn" style="background:#60a5fa" onclick="joinGroup()">Entrar</button>
+    <div id="msgJoin" class="auth-msg"></div>
+  </div>
+  <div id="groupsList" style="width:100%;padding-top:4px"></div>
+</div>
+
+<!-- ══════════════════════════════════
+     PICKER SCREEN
+══════════════════════════════════ -->
+<div id="screenPicker" style="display:none">
+  <header>
+    <button class="back-btn" onclick="showScreen('screenGroups')">← Grupos</button>
+    <h1>💪 Fitness Challenge</h1>
+    <span style="font-size:12px;color:#888">Daily Challenge</span>
+  </header>
+  <div id="challengeBanner" class="challenge-banner"></div>
+  <p class="picker-intro">Escolhe o exercício de hoje:</p>
+  <div class="picker-grid">
+
+    <div class="exercise-card" id="card-squat" onclick="selectExercise('squat')">
+      <div class="icon">🏋️</div>
+      <div class="name">Squats</div>
+      <div class="target">15 reps</div>
+      <div class="view-tag">Vista lateral</div>
+    </div>
+
+    <div class="exercise-card" id="card-pushup" onclick="selectExercise('pushup')">
+      <div class="icon">💪</div>
+      <div class="name">Push-ups</div>
+      <div class="target">10 reps</div>
+      <div class="view-tag">Vista lateral</div>
+    </div>
+
+    <div class="exercise-card" id="card-jumpingjack" onclick="selectExercise('jumpingjack')">
+      <div class="icon">⭐</div>
+      <div class="name">Jumping Jacks</div>
+      <div class="target">20 reps</div>
+      <div class="view-tag">Vista frontal</div>
+    </div>
+
+    <div class="exercise-card" id="card-plank" onclick="selectExercise('plank')">
+      <div class="icon">⏱️</div>
+      <div class="name">Plank</div>
+      <div class="target">30 segundos</div>
+      <div class="view-tag">Vista lateral</div>
+    </div>
+
+    <div class="exercise-card" id="card-situp" onclick="selectExercise('situp')">
+      <div class="icon">🤸</div>
+      <div class="name">Sit-ups</div>
+      <div class="target">15 reps</div>
+      <div class="view-tag">Vista lateral</div>
+    </div>
+
+    <div class="exercise-card" id="card-highknees" onclick="selectExercise('highknees')">
+      <div class="icon">🏃</div>
+      <div class="name">High Knees</div>
+      <div class="target">30 reps</div>
+      <div class="view-tag">Vista frontal</div>
+    </div>
+
+    <div class="exercise-card" id="card-bicepcurl" onclick="selectExercise('bicepcurl')">
+      <div class="icon">🦾</div>
+      <div class="name">Bicep Curls</div>
+      <div class="target">12 reps</div>
+      <div class="view-tag">Vista frontal</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     CAMERA SCREEN
+══════════════════════════════════ -->
+<div id="screenCamera">
+  <header>
+    <button class="back-btn" onclick="goBack()">← Voltar</button>
+    <h1 id="exerciseTitle">—</h1>
+    <span id="viewTip" style="font-size:11px;color:#888"></span>
+  </header>
+
+  <div class="challenge-bar">
+    <h2>Hoje's challenge</h2>
+    <p id="challengeSubtitle"></p>
+  </div>
+
+  <div class="video-wrapper">
+    <video id="video" playsinline autoplay muted></video>
+    <canvas id="canvas"></canvas>
+    <div class="overlay-status" id="overlayStatus">A carregar modelo<span class="dot-loader"></span></div>
+  </div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressBar"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="value v-green" id="repCount">0</div>
+      <div class="label" id="repLabel">Reps</div>
+    </div>
+    <div class="stat-card">
+      <div class="value v-yellow" id="targetDisplay">—</div>
+      <div class="label">Target</div>
+    </div>
+    <div class="stat-card">
+      <div class="value v-blue" id="metricDisplay">--</div>
+      <div class="label" id="metricLabel">Métrica</div>
+    </div>
+  </div>
+
+  <div class="feedback-box" id="feedbackBox">Inicia o desafio para começar.</div>
+
+  <div class="tip-box" id="debugBox" style="color:#f87171;font-size:11px;font-family:monospace">debug: —</div>
+
+  <div class="tip-box">💡 <span id="cameraTip">—</span></div>
+
+  <div class="btn-row">
+    <button id="btnStart">▶ Iniciar</button>
+    <button id="btnReset">↺ Reset</button>
+    <button id="btnComplete">✓ Submeter</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     SUCCESS SCREEN
+══════════════════════════════════ -->
+<div class="success-screen" id="successScreen">
+  <div class="emoji">🏆</div>
+  <h2>Desafio Completo!</h2>
+  <p id="successMsg"></p>
+  <button id="btnDismiss">Ver leaderboard</button>
+</div>
+
+<!-- MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+<script>
+// ═══════════════════════════════════════
+// EXERCISE DEFINITIONS
+// ═══════════════════════════════════════
+const EXERCISES = {
+  squat: {
+    name: 'Squats', icon: '🏋️', target: 15, unit: 'reps',
+    metric: 'Ângulo joelho', view: 'Vista lateral',
+    tip: 'Fica de lado para a câmara. Corpo inteiro visível.',
+    startMsg: 'Posiciona-te de lado. Faz o squat!',
+    color: '#4ade80'
+  },
+  pushup: {
+    name: 'Push-ups', icon: '💪', target: 10, unit: 'reps',
+    metric: 'Ângulo cotovelo', view: 'Vista lateral',
+    tip: 'Câmara no chão, de lado. Corpo horizontal visível.',
+    startMsg: 'Assume a posição de push-up. Câmara de lado.',
+    color: '#f97316'
+  },
+  jumpingjack: {
+    name: 'Jumping Jacks', icon: '⭐', target: 20, unit: 'reps',
+    metric: 'Posição', view: 'Vista frontal',
+    tip: 'Fica de frente para a câmara. Corpo inteiro visível.',
+    startMsg: 'Fica de frente. Braços para cima + pernas abertas = 1 rep!',
+    color: '#facc15'
+  },
+  plank: {
+    name: 'Plank', icon: '⏱️', target: 30, unit: 'seg',
+    metric: 'Forma', view: 'Vista lateral',
+    tip: 'Câmara no chão de lado. Mantém corpo reto e horizontal.',
+    startMsg: 'Assume a posição de plank. Câmara de lado ao chão.',
+    color: '#60a5fa'
+  },
+  situp: {
+    name: 'Sit-ups', icon: '🤸', target: 15, unit: 'reps',
+    metric: 'Ângulo tronco', view: 'Vista lateral',
+    tip: 'Deita-te de costas, câmara de lado. Joelhos dobrados.',
+    startMsg: 'Deita-te de costas com joelhos dobrados. Câmara de lado.',
+    color: '#a78bfa'
+  },
+  highknees: {
+    name: 'High Knees', icon: '🏃', target: 30, unit: 'reps',
+    metric: 'Joelho', view: 'Vista frontal',
+    tip: 'Fica de frente para a câmara. Corre no lugar!',
+    startMsg: 'Fica de frente. Cada joelho acima da anca = 1 rep!',
+    color: '#f43f5e'
+  },
+  bicepcurl: {
+    name: 'Bicep Curls', icon: '🦾', target: 12, unit: 'reps',
+    metric: 'Ângulo cotovelo', view: 'Vista frontal',
+    tip: 'Câmara de frente. Cotovelos junto ao corpo, não baloices.',
+    startMsg: 'De pé, braços ao lado. Dobra o braço sem mover o ombro!',
+    color: '#06b6d4'
+  }
+};
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const API             = 'http://localhost:4000';
+let authToken         = localStorage.getItem('fc_jwt');
+let activeChallengeId = null;
+let workoutStart      = null;
+let formGoodCount     = 0;
+let formTotalCount    = 0;
+let myGroups          = [];
+let myUserId          = null;
+
+let currentExercise = null;
+let isTracking      = false;
+let modelReady      = false;
+let reps            = 0;
+
+// Squat
+let squatState     = 'up';
+let hipBaselineY   = null;
+let sqBodyHeight   = null;
+let hipDropOk      = false;
+
+// Push-up
+let pushupState = 'up';
+
+// Jumping Jack
+let jjState = 'down';
+
+// Plank
+let plankSecs    = 0;
+let lastFrameTs  = null;
+
+// Sit-up
+let situpState    = 'down';
+let situpHipBaseY = null;
+
+// High Knees
+let highKneesLastKnee = null;
+
+// Bicep Curl
+let curlState = 'down';
+
+// ═══════════════════════════════════════
+// DOM
+// ═══════════════════════════════════════
+const video         = document.getElementById('video');
+const canvas        = document.getElementById('canvas');
+const ctx           = canvas.getContext('2d');
+const repCountEl    = document.getElementById('repCount');
+const repLabelEl    = document.getElementById('repLabel');
+const targetEl      = document.getElementById('targetDisplay');
+const metricEl      = document.getElementById('metricDisplay');
+const metricLabelEl = document.getElementById('metricLabel');
+const feedbackEl    = document.getElementById('feedbackBox');
+const overlayEl     = document.getElementById('overlayStatus');
+const progressBar   = document.getElementById('progressBar');
+const btnStart      = document.getElementById('btnStart');
+const btnReset      = document.getElementById('btnReset');
+const btnComplete   = document.getElementById('btnComplete');
+const successScreen = document.getElementById('successScreen');
+
+// ═══════════════════════════════════════
+// API + AUTH + INIT
+// ═══════════════════════════════════════
+;(async function init() {
+  // Tratar ?jwt= do redirect do magic link
+  const params = new URLSearchParams(location.search);
+  const jwtParam = params.get('jwt');
+  if (jwtParam) {
+    localStorage.setItem('fc_jwt', jwtParam);
+    authToken = jwtParam;
+    history.replaceState({}, '', location.pathname);
+  }
+
+  if (authToken) {
+    try {
+      const r = await fetch(API + '/auth/me', {
+        headers: { Authorization: 'Bearer ' + authToken }
+      });
+      if (r.ok) {
+        showScreen('screenGroups');
+        await loadGroups();
+        return;
+      }
+    } catch {}
+    localStorage.removeItem('fc_jwt');
+    authToken = null;
+  }
+  showScreen('screenAuth');
+})();
+
+function showScreen(id) {
+  ['screenAuth', 'screenGroups', 'screenPicker'].forEach(s =>
+    document.getElementById(s).style.display = 'none'
+  );
+  document.getElementById(id).style.display = id === 'screenPicker' ? 'block' : 'flex';
+}
+
+async function loadChallenge() {
+  try {
+    const gr = await fetch(API + '/groups', {
+      headers: { Authorization: 'Bearer ' + authToken }
+    });
+    if (!gr.ok) return;
+    const groups = await gr.json();
+    if (!groups.length) return;
+
+    const cr = await fetch(API + '/challenges/current?groupId=' + groups[0].id, {
+      headers: { Authorization: 'Bearer ' + authToken }
+    });
+    if (!cr.ok) return;
+    const ch = await cr.json();
+    if (ch?.id) {
+      activeChallengeId = ch.id;
+      const ex = EXERCISES[ch.exercise];
+      const banner = document.getElementById('challengeBanner');
+      banner.style.display = 'block';
+      banner.innerHTML = 'Desafio desta semana: <strong>' + ex.name + '</strong> — ' + ch.target + ' ' + ex.unit;
+    }
+  } catch {}
+}
+
+// ═══════════════════════════════════════
+// GROUPS
+// ═══════════════════════════════════════
+async function loadGroups() {
+  try {
+    const [gr, me] = await Promise.all([
+      fetch(API + '/groups', { headers: { Authorization: 'Bearer ' + authToken } }),
+      fetch(API + '/auth/me', { headers: { Authorization: 'Bearer ' + authToken } })
+    ]);
+    if (!gr.ok) return;
+    myGroups = await gr.json();
+    if (me.ok) { const u = await me.json(); myUserId = u.id; }
+    await renderGroups();
+  } catch {}
+}
+
+async function renderGroups() {
+  const list = document.getElementById('groupsList');
+  if (!myGroups.length) {
+    list.innerHTML = '<div class="groups-empty">Ainda não tens grupos.<br>Cria um ou entra com um código de convite.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  for (const group of myGroups) {
+    let challenge = null;
+    try {
+      const cr = await fetch(API + '/challenges/current?groupId=' + group.id, {
+        headers: { Authorization: 'Bearer ' + authToken }
+      });
+      if (cr.ok) challenge = await cr.json();
+    } catch {}
+
+    const isOwner     = group.ownerId === myUserId;
+    const memberCount = group.members?.length || 1;
+
+    let bottomHtml;
+    if (challenge?.id) {
+      const ex = EXERCISES[challenge.exercise];
+      bottomHtml = `
+        <div class="challenge-row">
+          <div class="challenge-row-info">${ex.icon} <strong>${ex.name}</strong> — ${challenge.target} ${ex.unit}</div>
+          <button class="btn-play" onclick="selectGroup('${challenge.id}','${challenge.exercise}',${challenge.target},'${ex.unit}')">Jogar →</button>
+        </div>`;
+    } else if (isOwner) {
+      const options = Object.entries(EXERCISES)
+        .map(([k, v]) => `<option value="${k}">${v.icon} ${v.name}</option>`).join('');
+      bottomHtml = `
+        <div class="owner-challenge-row">
+          <select class="challenge-select" id="sel-${group.id}"
+            onchange="updateDefaultTarget('${group.id}')">${options}</select>
+          <input type="number" class="challenge-target-input" id="target-${group.id}"
+            value="15" min="1" max="999" placeholder="reps" />
+          <button class="btn-create-ch" onclick="createChallenge('${group.id}')">Definir</button>
+        </div>`;
+    } else {
+      bottomHtml = '<div class="no-challenge">Sem desafio esta semana.</div>';
+    }
+
+    const card = document.createElement('div');
+    card.className = 'group-card';
+    card.innerHTML = `
+      <div class="group-card-header">
+        <div>
+          <div class="group-card-name">${group.name}</div>
+          <div class="group-card-meta">${memberCount} membro${memberCount !== 1 ? 's' : ''}</div>
+        </div>
+        <span class="invite-code">${group.inviteCode}</span>
+      </div>
+      ${bottomHtml}`;
+    list.appendChild(card);
+  }
+}
+
+function toggleForm(id) {
+  const fc = document.getElementById('formCreate');
+  const fj = document.getElementById('formJoin');
+  if (id === 'formCreate') { fc.classList.toggle('open'); fj.classList.remove('open'); }
+  else                     { fj.classList.toggle('open'); fc.classList.remove('open'); }
+}
+
+async function createGroup() {
+  const name = document.getElementById('inputGroupName').value.trim();
+  const msg  = document.getElementById('msgCreate');
+  if (!name) { msg.textContent = 'Insere um nome.'; msg.className = 'auth-msg err'; return; }
+  try {
+    const r = await fetch(API + '/groups', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+      body: JSON.stringify({ name })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      document.getElementById('inputGroupName').value = '';
+      document.getElementById('formCreate').classList.remove('open');
+      myGroups.push(d);
+      await renderGroups();
+    } else { msg.textContent = d.error || 'Erro ao criar.'; msg.className = 'auth-msg err'; }
+  } catch { msg.textContent = 'Erro de ligação.'; msg.className = 'auth-msg err'; }
+}
+
+async function joinGroup() {
+  const code = document.getElementById('inputInviteCode').value.trim().toUpperCase();
+  const msg  = document.getElementById('msgJoin');
+  if (!code) { msg.textContent = 'Insere o código.'; msg.className = 'auth-msg err'; return; }
+  try {
+    const r = await fetch(API + '/groups/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+      body: JSON.stringify({ inviteCode: code })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      document.getElementById('inputInviteCode').value = '';
+      document.getElementById('formJoin').classList.remove('open');
+      await loadGroups();
+    } else { msg.textContent = d.error || 'Grupo não encontrado.'; msg.className = 'auth-msg err'; }
+  } catch { msg.textContent = 'Erro de ligação.'; msg.className = 'auth-msg err'; }
+}
+
+const DEFAULT_TARGETS = { squat:15, pushup:10, jumpingjack:20, plank:30, situp:15, highknees:30, bicepcurl:12 };
+
+function updateDefaultTarget(groupId) {
+  const exercise = document.getElementById('sel-' + groupId).value;
+  document.getElementById('target-' + groupId).value = DEFAULT_TARGETS[exercise];
+}
+
+async function createChallenge(groupId) {
+  const exercise = document.getElementById('sel-' + groupId).value;
+  const target   = parseInt(document.getElementById('target-' + groupId).value);
+  if (!target || target < 1) { alert('Target inválido.'); return; }
+  try {
+    const r = await fetch(API + '/challenges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+      body: JSON.stringify({ groupId, exercise, target })
+    });
+    if (r.ok) await loadGroups();
+    else { const d = await r.json(); alert(d.error || 'Erro ao criar desafio.'); }
+  } catch { alert('Erro de ligação.'); }
+}
+
+function selectGroup(challengeId, exercise, target, unit) {
+  activeChallengeId = challengeId;
+  const banner = document.getElementById('challengeBanner');
+  banner.style.display = 'block';
+  banner.innerHTML = 'Desafio desta semana: <strong>' + EXERCISES[exercise].name + '</strong> — ' + target + ' ' + unit;
+  showScreen('screenPicker');
+}
+
+function logout() {
+  localStorage.removeItem('fc_jwt');
+  authToken = null; activeChallengeId = null; myGroups = []; myUserId = null;
+  showScreen('screenAuth');
+}
+
+document.getElementById('btnRequestLink').addEventListener('click', async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  const msg   = document.getElementById('authMsg');
+  if (!email) { msg.textContent = 'Insere o teu email.'; msg.className = 'auth-msg err'; return; }
+
+  const btn = document.getElementById('btnRequestLink');
+  btn.disabled = true;
+  msg.textContent = 'A enviar…'; msg.className = 'auth-msg';
+
+  try {
+    const r = await fetch(API + '/auth/request-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      if (d.devUrl) {
+        // Dev mode: mostrar link clicável directamente na app
+        msg.className = 'auth-msg';
+        msg.innerHTML = `
+          <div class="magic-link-box">
+            <p>Modo dev — clica para entrares:</p>
+            <a href="${d.devUrl}" class="magic-link-btn">Entrar agora →</a>
+          </div>`;
+      } else {
+        msg.textContent = 'Link enviado! Verifica o teu email.';
+        msg.className   = 'auth-msg ok';
+      }
+    } else {
+      msg.textContent = d.error || 'Erro ao enviar.';
+      msg.className   = 'auth-msg err';
+      btn.disabled    = false;
+    }
+  } catch {
+    msg.textContent = 'Sem ligação ao backend (porta 4000).';
+    msg.className   = 'auth-msg err';
+    btn.disabled    = false;
+  }
+});
+
+document.getElementById('btnVerifyToken').addEventListener('click', async () => {
+  const raw = document.getElementById('tokenInput').value.trim();
+  const msg = document.getElementById('authMsg');
+  let token = raw;
+  try { token = new URL(raw).searchParams.get('token') || raw; } catch {}
+
+  msg.textContent = 'A verificar…'; msg.className = 'auth-msg';
+  try {
+    const r = await fetch(API + '/auth/verify?token=' + encodeURIComponent(token));
+    const d = await r.json();
+    if (r.ok && d.token) {
+      localStorage.setItem('fc_jwt', d.token);
+      authToken = d.token;
+      showScreen('screenGroups');
+      await loadGroups();
+    } else {
+      msg.textContent = d.error || 'Token inválido ou expirado.';
+      msg.className   = 'auth-msg err';
+    }
+  } catch {
+    msg.textContent = 'Erro de ligação.'; msg.className = 'auth-msg err';
+  }
+});
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+function calcAngle(a, b, c) {
+  const rad = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
+  let angle = Math.abs(rad * 180 / Math.PI);
+  if (angle > 180) angle = 360 - angle;
+  return angle;
+}
+
+function setFeedback(msg, type = 'ok') {
+  feedbackEl.textContent = msg;
+  feedbackEl.className = 'feedback-box' + (type === 'warn' ? ' warn' : type === 'error' ? ' error' : '');
+  if (isTracking) { formTotalCount++; if (type !== 'error') formGoodCount++; }
+}
+
+function addRep() {
+  reps++;
+  const ex = EXERCISES[currentExercise];
+  repCountEl.textContent = reps;
+  progressBar.style.width = Math.min((reps / ex.target) * 100, 100) + '%';
+
+  if (reps >= ex.target) {
+    isTracking = false;
+    btnComplete.style.display = 'block';
+    overlayEl.textContent = '🎉 ' + reps + ' ' + ex.unit + '!';
+    setFeedback('🔥 Objetivo atingido! Submete o resultado.', 'ok');
+  } else {
+    setFeedback(`✅ Rep ${reps}! ${ex.target - reps} para acabar. Continua!`, 'ok');
+  }
+}
+
+function updatePlankTimer(seconds) {
+  const ex = EXERCISES.plank;
+  repCountEl.textContent = Math.floor(seconds);
+  progressBar.style.width = Math.min((seconds / ex.target) * 100, 100) + '%';
+
+  if (seconds >= ex.target && isTracking) {
+    isTracking = false;
+    btnComplete.style.display = 'block';
+    overlayEl.textContent = '🎉 ' + ex.target + 'seg!';
+    setFeedback('🔥 Plank completo! Submete o resultado.', 'ok');
+  }
+}
+
+// ═══════════════════════════════════════
+// SQUAT
+// Anti-cheat: joelho dobra E anca desce
+// ═══════════════════════════════════════
+function processSquat(lm) {
+  const rHip = lm[24], rKnee = lm[26], rAnkle = lm[28], rShoulder = lm[12];
+  const lHip = lm[23], lKnee = lm[25], lAnkle = lm[27], lShoulder = lm[11];
+
+  const rVis = rHip.visibility > 0.5 && rKnee.visibility > 0.5 && rAnkle.visibility > 0.5;
+  const lVis = lHip.visibility > 0.5 && lKnee.visibility > 0.5 && lAnkle.visibility > 0.5;
+
+  if (!rVis && !lVis) { setFeedback('Não vejo as pernas. Afasta-te da câmara.', 'warn'); return; }
+
+  const hip      = rVis ? rHip      : lHip;
+  const knee     = rVis ? rKnee     : lKnee;
+  const ankle    = rVis ? rAnkle    : lAnkle;
+  const shoulder = rVis ? rShoulder : lShoulder;
+
+  const kneeAngle = calcAngle(hip, knee, ankle);
+  metricEl.textContent = Math.round(kneeAngle) + '°';
+
+  const bodyH = Math.abs(ankle.y - shoulder.y);
+  if (bodyH > 0.1) sqBodyHeight = bodyH;
+
+  // Calibrar baseline da anca quando está de pé
+  if (squatState === 'up' && kneeAngle > 160) hipBaselineY = hip.y;
+
+  // Verificar se a anca desceu (anti-cheat: não conta levantar a perna)
+  if (hipBaselineY !== null && sqBodyHeight !== null) {
+    const drop = (hip.y - hipBaselineY) / sqBodyHeight;
+    hipDropOk = drop > 0.08;
+  }
+
+  if (kneeAngle < 100 && squatState === 'up') {
+    if (hipDropOk) {
+      squatState = 'down';
+      setFeedback('⬇️ Bom squat! Agora sobe!', 'warn');
+    } else {
+      setFeedback('⚠️ Baixa o tronco! Não estás a fazer squat.', 'error');
+    }
+  }
+
+  if (kneeAngle > 160 && squatState === 'down') {
+    squatState = 'up';
+    hipBaselineY = hip.y;
+    hipDropOk = false;
+    addRep();
+  }
+
+  if (squatState === 'up' && kneeAngle > 160) {
+    setFeedback('Posição inicial. Faz o squat!', 'ok');
+  }
+}
+
+// ═══════════════════════════════════════
+// PUSH-UPS
+// Anti-cheat 1: corpo tem de ser horizontal (shoulder+hip+ankle no mesmo Y)
+// Anti-cheat 2: ombro tem de estar acima do pulso (não é só mover o braço)
+// ═══════════════════════════════════════
+function processPushup(lm) {
+  const rShoulder = lm[12], rElbow = lm[14], rWrist = lm[16];
+  const lShoulder = lm[11], lElbow = lm[13], lWrist = lm[15];
+  const rHip = lm[24], rAnkle = lm[28];
+  const lHip = lm[23], lAnkle = lm[27];
+
+  const rVis = rShoulder.visibility > 0.5 && rElbow.visibility > 0.5 && rWrist.visibility > 0.5;
+  const lVis = lShoulder.visibility > 0.5 && lElbow.visibility > 0.5 && lWrist.visibility > 0.5;
+
+  if (!rVis && !lVis) { setFeedback('Não vejo os braços. Ajusta a câmara de lado.', 'warn'); return; }
+
+  const shoulder = rVis ? rShoulder : lShoulder;
+  const elbow    = rVis ? rElbow    : lElbow;
+  const wrist    = rVis ? rWrist    : lWrist;
+  const hip      = rVis ? rHip      : lHip;
+  const ankle    = rVis ? rAnkle    : lAnkle;
+
+  // Anti-cheat 1: corpo horizontal
+  // Juntar todos os pontos visíveis e verificar que o range de Y é pequeno
+  const pts = [shoulder];
+  if (hip.visibility > 0.4)   pts.push(hip);
+  if (ankle.visibility > 0.4) pts.push(ankle);
+
+  if (pts.length >= 2) {
+    const ys    = pts.map(p => p.y);
+    const yRange = Math.max(...ys) - Math.min(...ys);
+    if (yRange > 0.15) {
+      setFeedback('⚠️ Deita-te na posição de push-up! Corpo horizontal.', 'error');
+      return;
+    }
+  }
+
+  // Anti-cheat 2: ombro tem de estar ACIMA do pulso (corpo elevado, não no chão)
+  // Se estiver deitado plano (ou de pé a mover o braço), shoulder.y ≈ wrist.y ou shoulder.y > wrist.y
+  // Num push-up real visto de lado: shoulder.y < wrist.y (ombro mais alto que pulso)
+  const shoulderElevated = shoulder.y < wrist.y - 0.04;
+  if (!shoulderElevated) {
+    setFeedback('⚠️ Levanta o corpo! Assume a posição de push-up com os braços esticados.', 'error');
+    return;
+  }
+
+  const elbowAngle = calcAngle(shoulder, elbow, wrist);
+  metricEl.textContent = Math.round(elbowAngle) + '°';
+
+  if (elbowAngle < 90 && pushupState === 'up') {
+    pushupState = 'down';
+    setFeedback('⬇️ Bom! Agora empurra para cima!', 'warn');
+  }
+
+  if (elbowAngle > 155 && pushupState === 'down') {
+    pushupState = 'up';
+    addRep();
+  }
+
+  if (pushupState === 'up' && elbowAngle > 155) {
+    setFeedback('Posição inicial. Desce para o push-up!', 'ok');
+  }
+}
+
+// ═══════════════════════════════════════
+// JUMPING JACKS
+// Anti-cheat: braços E pernas têm de abrir/fechar em simultâneo
+// ═══════════════════════════════════════
+function processJumpingJack(lm) {
+  const lShoulder = lm[11], rShoulder = lm[12];
+  const lWrist    = lm[15], rWrist    = lm[16];
+  const lAnkle    = lm[27], rAnkle    = lm[28];
+
+  const vis = [lShoulder, rShoulder, lWrist, rWrist, lAnkle, rAnkle]
+    .every(p => p.visibility > 0.4);
+
+  if (!vis) { setFeedback('Corpo inteiro tem de estar visível. Afasta-te da câmara.', 'warn'); return; }
+
+  // Braços: pulsos acima dos ombros
+  const armsUp = lWrist.y < lShoulder.y - 0.04 && rWrist.y < rShoulder.y - 0.04;
+
+  // Pernas: tornozelos mais afastados que ombros
+  const shoulderW = Math.abs(lShoulder.x - rShoulder.x);
+  const ankleW    = Math.abs(lAnkle.x - rAnkle.x);
+  const legsOpen  = ankleW > shoulderW * 1.3;
+  const legsClose = ankleW < shoulderW * 0.9;
+
+  metricEl.textContent = (armsUp && legsOpen) ? 'OPEN' : 'CLOSE';
+
+  // State machine
+  // UP = braços + pernas em simultâneo (anti-cheat)
+  if (armsUp && legsOpen && jjState === 'down') {
+    jjState = 'up';
+    setFeedback('⭐ Perfeito! Agora fecha!', 'warn');
+  }
+
+  if (!armsUp && legsClose && jjState === 'up') {
+    jjState = 'down';
+    addRep();
+  }
+
+  // Feedback específico para ajudar
+  if (jjState === 'down' && isTracking) {
+    if (armsUp && !legsOpen)       setFeedback('⚠️ Abre as pernas também!', 'error');
+    else if (!armsUp && legsOpen)  setFeedback('⚠️ Levanta os braços também!', 'error');
+    else if (!armsUp && !legsOpen) setFeedback('Salta! Braços para cima + pernas abertas.', 'ok');
+  }
+  if (jjState === 'up' && isTracking) {
+    if (!armsUp)    setFeedback('⚠️ Não desças os braços antes das pernas!', 'error');
+    else if (!legsClose) setFeedback('Fecha as pernas e baixa os braços!', 'warn');
+  }
+}
+
+// ═══════════════════════════════════════
+// PLANK
+// Anti-cheat 1: corpo horizontal
+// Anti-cheat 2: ombro tem de estar ACIMA do pulso/cotovelo (corpo elevado, não deitado no chão)
+// Anti-cheat 3: anca não pode cair nem subir
+// ═══════════════════════════════════════
+function processPlank(lm) {
+  const now = performance.now();
+  const dt  = lastFrameTs ? Math.min((now - lastFrameTs) / 1000, 0.1) : 0;
+  lastFrameTs = now;
+
+  const rShoulder = lm[12], rHip = lm[24], rAnkle = lm[28], rElbow = lm[14], rWrist = lm[16];
+  const lShoulder = lm[11], lHip = lm[23], lAnkle = lm[27], lElbow = lm[13], lWrist = lm[15];
+
+  const rVis = rShoulder.visibility > 0.4 && rHip.visibility > 0.4 && rAnkle.visibility > 0.4;
+  const lVis = lShoulder.visibility > 0.4 && lHip.visibility > 0.4 && lAnkle.visibility > 0.4;
+
+  if (!rVis && !lVis) { setFeedback('Não vejo o corpo. Ajusta a câmara de lado.', 'warn'); return; }
+
+  const shoulder = rVis ? rShoulder : lShoulder;
+  const hip      = rVis ? rHip      : lHip;
+  const ankle    = rVis ? rAnkle    : lAnkle;
+  const elbow    = rVis ? rElbow    : lElbow;
+  const wrist    = rVis ? rWrist    : lWrist;
+
+  // Exige confiança alta em TODOS os landmarks relevantes
+  // Ao longe a confiança cai — se não for fiável, não conta
+  const confOk = [shoulder, hip, ankle, elbow, wrist].every(p => p.visibility > 0.60);
+  if (!confOk) {
+    metricEl.textContent = '⚠️';
+    document.getElementById('debugBox').textContent =
+      `conf: sh:${shoulder.visibility.toFixed(2)} hp:${hip.visibility.toFixed(2)} wr:${wrist.visibility.toFixed(2)} el:${elbow.visibility.toFixed(2)}`;
+    setFeedback('Aproxima-te da câmara para deteção precisa.', 'warn');
+    return;
+  }
+
+  // Escala do corpo normalizada (funciona a qualquer distância)
+  const bodyScale = Math.hypot(ankle.x - shoulder.x, ankle.y - shoulder.y) || 0.1;
+
+  // Check 1: corpo horizontal
+  const bodyAngle = Math.atan2(
+    Math.abs(ankle.y - shoulder.y),
+    Math.abs(ankle.x - shoulder.x)
+  ) * 180 / Math.PI;
+
+  // Check 2: braço perpendicular ao corpo
+  const bodyVec = { x: ankle.x - shoulder.x, y: ankle.y - shoulder.y };
+  const armRef  = wrist.visibility > 0.5 ? wrist : elbow;
+  const armVec  = { x: armRef.x - shoulder.x, y: armRef.y - shoulder.y };
+  const magBody = Math.hypot(bodyVec.x, bodyVec.y);
+  const magArm  = Math.hypot(armVec.x, armVec.y);
+  let armBodyAngle = 0;
+  if (magBody > 0.01 && magArm > 0.01) {
+    const cosA = (bodyVec.x * armVec.x + bodyVec.y * armVec.y) / (magBody * magArm);
+    armBodyAngle = Math.acos(Math.max(-1, Math.min(1, cosA))) * 180 / Math.PI;
+  }
+  const armPerp = armBodyAngle > 50 && armBodyAngle < 130;
+
+  // Check 3: wrist abaixo do HIP (não do shoulder) — normalizado
+  // Hip é um landmark grande e estável mesmo ao longe
+  // Plank: wrist no chão, hip elevado → wrist.y > hip.y → hipWristDiff > 0
+  // Deitado: wrist.y ≈ hip.y → hipWristDiff ≈ 0
+  const hipWristDiff = (armRef.y - hip.y) / bodyScale;
+  const isElevated = hipWristDiff > 0.08;
+
+  // Check 4: anca não desvia da linha ombro→tornozelo
+  const t = Math.max(0, Math.min(1, (hip.x - shoulder.x) / ((ankle.x - shoulder.x) || 0.001)));
+  const expectedHipY = shoulder.y + t * (ankle.y - shoulder.y);
+  const hipDev = Math.abs(hip.y - expectedHipY);
+
+  const isPlankPos = armPerp && isElevated;
+  const goodForm   = isPlankPos && bodyAngle < 20 && hipDev < 0.07;
+
+  // DEBUG
+  metricEl.textContent = Math.round(armBodyAngle) + '°';
+  document.getElementById('debugBox').textContent =
+    `arm:${Math.round(armBodyAngle)}° hwDiff:${hipWristDiff.toFixed(2)} body:${Math.round(bodyAngle)}° ok:${isPlankPos}`;
+
+  if (!isPlankPos) {
+    const reason = !isElevated
+      ? `não elevado (hwDiff:${hipWristDiff.toFixed(2)}, precisa >0.08)`
+      : `braço não perp (${Math.round(armBodyAngle)}°)`;
+    setFeedback(`⚠️ Assume a posição de plank! ${reason}`, 'error');
+    return;
+  }
+
+  if (goodForm && isTracking) {
+    plankSecs += dt;
+    updatePlankTimer(plankSecs);
+    if (plankSecs < EXERCISES.plank.target) {
+      const rem = Math.ceil(EXERCISES.plank.target - plankSecs);
+      setFeedback(`💪 Boa forma! ${rem}seg restantes.`, 'ok');
+    }
+  } else if (isTracking) {
+    if (bodyAngle >= 20) {
+      setFeedback('⚠️ Mantém o corpo horizontal! Não inclines.', 'error');
+    } else if (hip.y > expectedHipY + 0.05) {
+      setFeedback('⚠️ Anca a cair! Contrai o core.', 'error');
+    } else {
+      setFeedback('⚠️ Anca demasiado alta! Baixa ligeiramente.', 'error');
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+// SIT-UPS
+// Anti-cheat: só o tronco sobe, anca mantém-se
+// ═══════════════════════════════════════
+function processSitup(lm) {
+  const rShoulder = lm[12], rHip = lm[24], rKnee = lm[26];
+  const lShoulder = lm[11], lHip = lm[23], lKnee = lm[25];
+
+  const rVis = rShoulder.visibility > 0.5 && rHip.visibility > 0.5;
+  const lVis = lShoulder.visibility > 0.5 && lHip.visibility > 0.5;
+
+  if (!rVis && !lVis) { setFeedback('Não vejo o tronco. Câmara de lado.', 'warn'); return; }
+
+  const shoulder = rVis ? rShoulder : lShoulder;
+  const hip      = rVis ? rHip      : lHip;
+
+  // Ângulo do tronco relativamente ao horizontal
+  // Deitado: shoulder.y ≈ hip.y → ângulo ≈ 0°
+  // Sentado: shoulder sobe → ângulo aumenta
+  const torsoAngle = Math.atan2(
+    hip.y - shoulder.y,           // positivo = shoulder acima de hip
+    Math.abs(hip.x - shoulder.x)
+  ) * 180 / Math.PI;
+
+  metricEl.textContent = Math.round(torsoAngle) + '°';
+
+  // Anti-cheat: hip não se deve mover muito (não é um crunch de anca)
+  if (situpHipBaseY === null) situpHipBaseY = hip.y;
+  const hipMove = Math.abs(hip.y - situpHipBaseY);
+  if (hipMove > 0.08) {
+    setFeedback('⚠️ Mantém a anca no chão! Só o tronco sobe.', 'error');
+    situpHipBaseY = hip.y; // recalibrar
+    return;
+  }
+
+  if (torsoAngle > 45 && situpState === 'down') {
+    situpState = 'up';
+    setFeedback('⬆️ Bom! Agora desce devagar.', 'warn');
+  }
+
+  if (torsoAngle < 15 && situpState === 'up') {
+    situpState = 'down';
+    addRep();
+  }
+
+  if (situpState === 'down' && torsoAngle < 15) {
+    setFeedback('Deita-te e sobe o tronco!', 'ok');
+  }
+}
+
+// ═══════════════════════════════════════
+// HIGH KNEES
+// Anti-cheat: joelho tem de passar claramente acima da anca
+// ═══════════════════════════════════════
+function processHighKnees(lm) {
+  const lHip  = lm[23], rHip  = lm[24];
+  const lKnee = lm[25], rKnee = lm[26];
+
+  const vis = [lHip, rHip, lKnee, rKnee].every(p => p.visibility > 0.5);
+  if (!vis) { setFeedback('Corpo inteiro visível. Fica de frente para a câmara.', 'warn'); return; }
+
+  const hipY = (lHip.y + rHip.y) / 2;
+
+  // Joelho "em cima" = claramente acima da anca (threshold de 6% da imagem)
+  const lUp = lKnee.y < hipY - 0.06;
+  const rUp = rKnee.y < hipY - 0.06;
+
+  metricEl.textContent = lUp ? 'ESQ ↑' : rUp ? 'DIR ↑' : '—';
+
+  if (lUp && highKneesLastKnee !== 'left') {
+    highKneesLastKnee = 'left';
+    addRep();
+    setFeedback('⬆️ Esquerdo! Agora o direito!', 'warn');
+  } else if (rUp && highKneesLastKnee !== 'right') {
+    highKneesLastKnee = 'right';
+    addRep();
+    setFeedback('⬆️ Direito! Agora o esquerdo!', 'warn');
+  }
+
+  if (!lUp && !rUp && isTracking) {
+    setFeedback('Corre no lugar! Joelhos acima da anca.', 'ok');
+  }
+}
+
+// ═══════════════════════════════════════
+// BICEP CURLS
+// Anti-cheat: cotovelo não se move (sem baloiço de ombro)
+// ═══════════════════════════════════════
+function processBicepCurl(lm) {
+  const rShoulder = lm[12], rElbow = lm[14], rWrist = lm[16];
+  const lShoulder = lm[11], lElbow = lm[13], lWrist = lm[15];
+
+  const rVis = rShoulder.visibility > 0.5 && rElbow.visibility > 0.5 && rWrist.visibility > 0.5;
+  const lVis = lShoulder.visibility > 0.5 && lElbow.visibility > 0.5 && lWrist.visibility > 0.5;
+
+  if (!rVis && !lVis) { setFeedback('Não vejo o braço. Câmara de frente ou lateral.', 'warn'); return; }
+
+  const shoulder = rVis ? rShoulder : lShoulder;
+  const elbow    = rVis ? rElbow    : lElbow;
+  const wrist    = rVis ? rWrist    : lWrist;
+
+  const elbowAngle = calcAngle(shoulder, elbow, wrist);
+  metricEl.textContent = Math.round(elbowAngle) + '°';
+
+  // Anti-cheat: braço superior deve ser roughly vertical (cotovelo abaixo do ombro)
+  // Se o cotovelo subir muito, é baloiço (cheating)
+  const upperArmDy   = elbow.y - shoulder.y; // positivo = cotovelo abaixo do ombro
+  const upperArmDx   = Math.abs(elbow.x - shoulder.x);
+  const upperArmAngle = Math.atan2(upperArmDx, Math.abs(upperArmDy)) * 180 / Math.PI;
+  // 0° = braço vertical (correto), >50° = a baloiçar
+
+  if (upperArmAngle > 50 || upperArmDy < 0) {
+    setFeedback('⚠️ Cotovelo junto ao corpo! Não levantes o ombro.', 'error');
+    return;
+  }
+
+  if (elbowAngle < 55 && curlState === 'down') {
+    curlState = 'up';
+    setFeedback('💪 Bom curl! Agora estende devagar.', 'warn');
+  }
+
+  if (elbowAngle > 150 && curlState === 'up') {
+    curlState = 'down';
+    addRep();
+  }
+
+  if (curlState === 'down' && elbowAngle > 150) {
+    setFeedback('Dobra o braço! Cotovelo fixo junto ao corpo.', 'ok');
+  }
+}
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function selectExercise(id) {
+  currentExercise = id;
+  const ex = EXERCISES[id];
+
+  document.getElementById('exerciseTitle').textContent = ex.icon + ' ' + ex.name;
+  document.getElementById('viewTip').textContent = ex.view;
+  document.getElementById('challengeSubtitle').textContent = ex.target + ' ' + ex.unit;
+  document.getElementById('cameraTip').textContent = ex.tip;
+  repLabelEl.textContent   = ex.unit === 'seg' ? 'Segundos' : 'Reps';
+  targetEl.textContent     = ex.target;
+  metricLabelEl.textContent = ex.metric;
+  progressBar.style.background = ex.color;
+
+  resetState();
+  setFeedback(ex.startMsg);
+
+  document.getElementById('screenPicker').style.display  = 'none';
+  const sc = document.getElementById('screenCamera');
+  sc.style.display        = 'flex';
+  sc.style.flexDirection  = 'column';
+  sc.style.alignItems     = 'center';
+
+  if (!cameraStarted) startCamera();
+}
+
+function goBack() {
+  isTracking = false;
+  document.getElementById('screenCamera').style.display = 'none';
+  document.getElementById('screenPicker').style.display = 'block';
+}
+
+function resetState() {
+  reps        = 0;
+  isTracking  = false;
+  squatState  = 'up';
+  hipBaselineY = null;
+  sqBodyHeight = null;
+  hipDropOk   = false;
+  pushupState = 'up';
+  jjState     = 'down';
+  plankSecs         = 0;
+  lastFrameTs       = null;
+  situpState        = 'down';
+  situpHipBaseY     = null;
+  highKneesLastKnee = null;
+  curlState         = 'down';
+
+  repCountEl.textContent    = '0';
+  metricEl.textContent      = '--';
+  progressBar.style.width   = '0%';
+  btnComplete.style.display = 'none';
+  btnStart.disabled         = !modelReady;
+  overlayEl.textContent     = modelReady ? '🟢 Pronto' : 'A carregar...';
+  workoutStart   = null;
+  formGoodCount  = 0;
+  formTotalCount = 0;
+}
+
+// ═══════════════════════════════════════
+// MEDIAPIPE
+// ═══════════════════════════════════════
+function drawSkeleton(lm) {
+  canvas.width  = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawConnectors(ctx, lm, POSE_CONNECTIONS, { color: '#60a5fa55', lineWidth: 2 });
+  drawLandmarks(ctx, lm, { color: '#4ade80', lineWidth: 1, radius: 3 });
+}
+
+const pose = new Pose({
+  locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+});
+
+pose.setOptions({
+  modelComplexity: 1,
+  smoothLandmarks: true,
+  enableSegmentation: false,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5
+});
+
+pose.onResults(results => {
+  if (!modelReady) {
+    modelReady = true;
+    overlayEl.textContent = '🟢 Pronto';
+    btnStart.disabled = false;
+  }
+
+  if (results.poseLandmarks) {
+    drawSkeleton(results.poseLandmarks);
+    if (isTracking && currentExercise) {
+      switch (currentExercise) {
+        case 'squat':       processSquat(results.poseLandmarks);       break;
+        case 'pushup':      processPushup(results.poseLandmarks);      break;
+        case 'jumpingjack': processJumpingJack(results.poseLandmarks); break;
+        case 'plank':       processPlank(results.poseLandmarks);       break;
+        case 'situp':       processSitup(results.poseLandmarks);       break;
+        case 'highknees':   processHighKnees(results.poseLandmarks);   break;
+        case 'bicepcurl':   processBicepCurl(results.poseLandmarks);   break;
+      }
+    }
+  } else {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (isTracking) setFeedback('Não deteto nenhuma pessoa.', 'error');
+  }
+});
+
+let cameraStarted = false;
+
+async function startCamera() {
+  cameraStarted = true;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 640, height: 480 }
+    });
+    video.srcObject = stream;
+    const cam = new Camera(video, {
+      onFrame: async () => { await pose.send({ image: video }); },
+      width: 640, height: 480
+    });
+    cam.start();
+  } catch {
+    overlayEl.textContent = '❌ Sem acesso à câmara';
+    setFeedback('Permite o acesso à câmara nas definições do browser.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════
+// BUTTONS
+// ═══════════════════════════════════════
+btnStart.addEventListener('click', () => {
+  if (!modelReady || !currentExercise) return;
+  isTracking     = true;
+  lastFrameTs    = null;
+  workoutStart   = Date.now();
+  formGoodCount  = 0;
+  formTotalCount = 0;
+  btnStart.disabled = true;
+  overlayEl.textContent = '🔴 A gravar';
+  setFeedback(EXERCISES[currentExercise].startMsg);
+});
+
+btnReset.addEventListener('click', () => {
+  resetState();
+  if (currentExercise) setFeedback(EXERCISES[currentExercise].startMsg);
+});
+
+btnComplete.addEventListener('click', () => {
+  const ex  = EXERCISES[currentExercise];
+  const val = ex.unit === 'seg' ? Math.floor(plankSecs) : reps;
+  document.getElementById('successMsg').textContent =
+    `Fizeste ${val} ${ex.unit} de ${ex.name}. Incrível!`;
+  successScreen.classList.add('show');
+});
+
+document.getElementById('btnDismiss').addEventListener('click', async () => {
+  successScreen.classList.remove('show');
+
+  if (!activeChallengeId || !authToken) return;
+
+  const ex            = EXERCISES[currentExercise];
+  const completedReps = ex.unit === 'seg' ? Math.floor(plankSecs) : reps;
+  const timeSecs      = workoutStart ? (Date.now() - workoutStart) / 1000 : 0;
+  const formScore     = formTotalCount > 0 ? Math.round((formGoodCount / formTotalCount) * 100) : 75;
+
+  try {
+    const r = await fetch(API + '/submissions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + authToken
+      },
+      body: JSON.stringify({ challengeId: activeChallengeId, reps: completedReps, timeSecs, formScore })
+    });
+    const d = await r.json();
+    if (r.ok) {
+      alert('Submetido! Score: ' + Math.round(d.score) + '\nForma: ' + formScore + '%');
+    } else {
+      alert(d.error || 'Erro ao submeter.');
+    }
+  } catch {
+    alert('Sem ligação ao backend.');
+  }
+});
+
+btnStart.disabled = true;
+</script>
+</body>
+</html>

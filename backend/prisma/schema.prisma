@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USERS ────────────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  magicTokens  MagicToken[]
+  memberships  GroupMember[]
+  submissions  Submission[]
+  ownedGroups  Group[]       @relation("GroupOwner")
+}
+
+// ─── MAGIC LINK TOKENS ────────────────────────────────────────────────────────
+model MagicToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── GROUPS ───────────────────────────────────────────────────────────────────
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  inviteCode  String   @unique
+  ownerId     String
+  createdAt   DateTime @default(now())
+
+  owner      User          @relation("GroupOwner", fields: [ownerId], references: [id])
+  members    GroupMember[]
+  challenges Challenge[]
+}
+
+model GroupMember {
+  groupId  String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+}
+
+// ─── CHALLENGES ───────────────────────────────────────────────────────────────
+// Um desafio por dia por grupo — definido pelo owner
+model Challenge {
+  id         String     @id @default(cuid())
+  groupId    String
+  exercise   String     // 'squat' | 'pushup' | 'jumpingjack' | 'plank' | 'situp' | 'highknees' | 'bicepcurl'
+  target     Int        // número de reps ou segundos (definido pelo owner)
+  dayStart   DateTime   // meia-noite UTC do dia do challenge
+  createdAt  DateTime   @default(now())
+
+  group       Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+
+  @@unique([groupId, dayStart])
+}
+
+// ─── SUBMISSIONS ──────────────────────────────────────────────────────────────
+model Submission {
+  id          String   @id @default(cuid())
+  challengeId String
+  userId      String
+  reps        Int      // reps completadas (ou segundos para plank)
+  timeSecs    Float    // tempo total em segundos para completar
+  formScore   Float    // 0-100: qualidade média do movimento
+  score       Float    // score final calculado
+  submittedAt DateTime @default(now())
+
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId]) // um submission por pessoa por challenge
+}
