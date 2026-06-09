@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fitness Challenge MVP</title>
+  <title>FitWithFriends</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#4ade80" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FitWithFriends" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -246,6 +252,21 @@
       padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; flex: none;
     }
     .groups-empty { padding: 40px 24px; text-align: center; color: #555; font-size: 14px; line-height: 1.6; }
+
+    /* ── PWA INSTALL BANNER ── */
+    #installBanner {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: #1a1a1a; border-top: 1px solid #2a2a2a;
+      padding: 14px 16px; gap: 12px; align-items: center;
+    }
+    #installBanner.show { display: flex; }
+    #installBanner .ib-icon { font-size: 32px; flex: none; }
+    #installBanner .ib-text { flex: 1; }
+    #installBanner .ib-text strong { display: block; font-size: 14px; font-weight: 700; }
+    #installBanner .ib-text span { font-size: 12px; color: #888; }
+    #installBanner .ib-btns { display: flex; gap: 8px; flex: none; }
+    .ib-add { background: #4ade80; color: #0f0f0f; border: none; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .ib-dismiss { background: #2a2a2a; color: #888; border: none; border-radius: 8px; padding: 9px 12px; font-size: 13px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -426,6 +447,21 @@
 </div>
 
 <!-- MediaPipe -->
+<!-- ══════════════════════════════════
+     PWA INSTALL BANNER
+══════════════════════════════════ -->
+<div id="installBanner">
+  <div class="ib-icon">📲</div>
+  <div class="ib-text">
+    <strong>Adicionar ao ecrã inicial</strong>
+    <span>Acesso rápido como app nativa</span>
+  </div>
+  <div class="ib-btns">
+    <button class="ib-add" id="btnInstall">Instalar</button>
+    <button class="ib-dismiss" id="btnDismissInstall">✕</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
@@ -1466,6 +1502,37 @@ document.getElementById('btnDismiss').addEventListener('click', async () => {
 });
 
 btnStart.disabled = true;
+
+// ── PWA ──────────────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {})
+}
+
+let deferredInstallPrompt = null
+const installBanner = document.getElementById('installBanner')
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault()
+  deferredInstallPrompt = e
+  installBanner.classList.add('show')
+})
+
+document.getElementById('btnInstall').addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return
+  deferredInstallPrompt.prompt()
+  const { outcome } = await deferredInstallPrompt.userChoice
+  deferredInstallPrompt = null
+  installBanner.classList.remove('show')
+})
+
+document.getElementById('btnDismissInstall').addEventListener('click', () => {
+  installBanner.classList.remove('show')
+})
+
+window.addEventListener('appinstalled', () => {
+  installBanner.classList.remove('show')
+  deferredInstallPrompt = null
+})
 </script>
 </body>
 </html>
